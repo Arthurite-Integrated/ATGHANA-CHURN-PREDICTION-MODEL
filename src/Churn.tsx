@@ -299,7 +299,7 @@ const ChurnPredictionUI = () => {
                       type={fld.type}
                       step={fld.step}
                       name={fld.name}
-                      value={formData[fld.name]}
+                      value={formData[fld.name as keyof FormData]}
                       onChange={handleInputChange}
                       placeholder={fld.placeholder}
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg focus:ring-2 focus:ring-pink-500 text-white placeholder-slate-400 hover:bg-slate-700/70 transition"
@@ -362,7 +362,7 @@ const ChurnPredictionUI = () => {
                 <h3 className="text-2xl font-semibold text-slate-200 mb-3">Upload CSV File</h3>
                 <p className="text-slate-400 mb-6 text-lg">Upload a CSV file containing customer data for batch prediction analysis</p>
                 <input type="file" accept=".csv" onChange={handleFileUpload} ref={fileInputRef} className="hidden" />
-                <button onClick={()=>fileInputRef.current.click()} className="bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl hover:scale-105">
+                <button onClick={()=>fileInputRef.current?.click()} className="bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-400 hover:to-red-400 text-white px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl hover:scale-105">
                   Select CSV File
                 </button>
                 {uploadedFile && (
