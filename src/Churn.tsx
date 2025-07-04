@@ -2,17 +2,59 @@ import { useState, useRef } from 'react';
 import {
   Upload, User, FileText, Plus as PlusIcon, Users, BarChart3, Download, Sparkles, Brain, Zap
 } from 'lucide-react';
-import logo from './assets/at.png'
+import logo from './assets/at.png';
+
+interface FormData {
+  customer_id: string;
+  monthly_sms: string;
+  monthly_minutes: string;
+  monthly_data_gb: string;
+  monthly_charge: string;
+  late_payments: string;
+  is_fraud: string;
+  international_calls: string;
+  device_age_months: string;
+  customer_service_calls: string;
+  contract_type: string;
+  city: string;
+  age: string;
+  account_length_months: string;
+}
+
+interface PredictionResponse {
+  customer_id: string;
+  prediction: {
+    churn_probability: number;
+    risk_level: string;
+    confidence: string;
+    raw_response: string;
+  };
+  business_insights: {
+    recommended_action: string;
+    priority: string;
+    next_steps: string[];
+    estimated_revenue_risk: {
+      monthly_risk_ghs: number;
+      annual_risk_ghs: number;
+      customer_lifetime_value: number;
+    };
+    intervention_timeline: string;
+    success_probability: number;
+  };
+  timestamp: string;
+  model_version: string;
+  features_used: number;
+}
 
 const ChurnPredictionUI = () => {
-  const [activeTab, setActiveTab] = useState('single');
-  const [singlePrediction, setSinglePrediction] = useState(null);
-  const [batchResults, setBatchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const fileInputRef = useRef(null);
+  const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
+  const [singlePrediction, setSinglePrediction] = useState<PredictionResponse | null>(null);
+  const [batchResults, setBatchResults] = useState<PredictionResponse[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     customer_id: "",
     monthly_sms: "",
     monthly_minutes: "",
@@ -29,12 +71,12 @@ const ChurnPredictionUI = () => {
     account_length_months: ""
   });
 
-  const handleInputChange = (e: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const generateMockPrediction = (customerData: any) => {
+  const generateMockPrediction = (customerData: FormData): PredictionResponse => {
     const riskFactors = [
       parseInt(customerData.late_payments) > 3,
       parseInt(customerData.customer_service_calls) > 5,
@@ -82,77 +124,82 @@ const ChurnPredictionUI = () => {
     };
   };
 
-const handleSinglePrediction = async () => {
-  if (!formData.customer_id) {
-    alert('Please enter a customer ID');
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await fetch("https://c6hpjk84dj.execute-api.us-east-1.amazonaws.com/dev/predict", {
-      method: "POST",
-      body: JSON.stringify({ body: formData })
-    });
-
-    if (!response.ok) {
-      throw new Error("Prediction request failed");
+  const handleSinglePrediction = async () => {
+    if (!formData.customer_id) {
+      alert('Please enter a customer ID');
+      return;
     }
 
-    const data = await response.json();
-    console.log("Prediction response:", data);
+    setLoading(true);
 
-    setSinglePrediction(data);  // Assuming the response format is exactly what your UI expects
-  } catch (error) {
-    console.error("Error during prediction:", error);
-    alert("There was an error making the prediction. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const response = await fetch("https://c6hpjk84dj.execute-api.us-east-1.amazonaws.com/dev/predict", {
+        method: "POST",
+        body: JSON.stringify({ body: formData })
+      });
 
+      if (!response.ok) {
+        throw new Error("Prediction request failed");
+      }
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file?.type === 'text/csv') setUploadedFile(file);
-    else alert('Please upload a CSV file');
+      const data: PredictionResponse = await response.json();
+      console.log("Prediction response:", data);
+
+      setSinglePrediction(data);
+    } catch (error) {
+      console.error("Error during prediction:", error);
+      alert("There was an error making the prediction. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file?.type === 'text/csv') {
+      setUploadedFile(file);
+    } else {
+      alert('Please upload a CSV file');
+    }
   };
 
   const handleBatchPrediction = async () => {
     if (!uploadedFile) return alert('Please upload a CSV file first');
     setLoading(true);
+
     await new Promise(res => setTimeout(res, 3000));
-    const mockResults = [];
+    const mockResults: PredictionResponse[] = [];
+
     for (let i = 1; i <= 5; i++) {
-      const mc = {
+      const mc: FormData = {
         customer_id: `CUST_${String(i).padStart(3, '0')}`,
-        monthly_sms: Math.floor(Math.random() * 100) + 10,
-        monthly_minutes: Math.floor(Math.random() * 300) + 50,
-        monthly_data_gb: Math.random() * 10 + 1,
-        monthly_charge: Math.floor(Math.random() * 80) + 20,
-        late_payments: Math.floor(Math.random() * 10),
+        monthly_sms: String(Math.floor(Math.random() * 100) + 10),
+        monthly_minutes: String(Math.floor(Math.random() * 300) + 50),
+        monthly_data_gb: (Math.random() * 10 + 1).toFixed(2),
+        monthly_charge: String(Math.floor(Math.random() * 80) + 20),
+        late_payments: String(Math.floor(Math.random() * 10)),
         is_fraud: '0',
-        international_calls: Math.floor(Math.random() * 5),
-        device_age_months: Math.floor(Math.random() * 60) + 6,
-        customer_service_calls: Math.floor(Math.random() * 15),
+        international_calls: String(Math.floor(Math.random() * 5)),
+        device_age_months: String(Math.floor(Math.random() * 60) + 6),
+        customer_service_calls: String(Math.floor(Math.random() * 15)),
         contract_type: Math.random() > 0.5 ? 'monthly' : 'annual',
         city: ['Accra','Kumasi','Tamale','Cape Coast'][Math.floor(Math.random() * 4)],
-        age: Math.floor(Math.random() * 50) + 20,
-        account_length_months: Math.floor(Math.random() * 60) + 1
+        age: String(Math.floor(Math.random() * 50) + 20),
+        account_length_months: String(Math.floor(Math.random() * 60) + 1)
       };
       mockResults.push(generateMockPrediction(mc));
     }
+
     setBatchResults(mockResults);
     setLoading(false);
   };
 
-  const getRiskColor = level =>
+  const getRiskColor = (level: string): string =>
     level === 'HIGH' ? 'text-red-400 bg-red-500/20 border-red-500/30' :
     level === 'MEDIUM' ? 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30' :
     'text-green-400 bg-green-500/20 border-green-500/30';
 
-  const getPriorityColor = priority =>
+  const getPriorityColor = (priority: string): string =>
     priority === 'CRITICAL' ? 'text-red-400 bg-red-500/20 border-red-500/30' :
     priority === 'HIGH' ? 'text-orange-400 bg-orange-500/20 border-orange-500/30' :
     priority === 'MEDIUM' ? 'text-red-400 bg-red-500/20 border-red-500/30' :
@@ -165,18 +212,18 @@ const handleSinglePrediction = async () => {
       r.prediction.churn_probability,
       r.prediction.risk_level,
       r.business_insights.priority,
-      r.business_insights.estimated_revenue_risk.monthly_risk_ghs.toFixed(2)
+      r.business_insights.estimated_revenue_risk.monthly_risk_ghs
     ]);
-    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+    const csv = [header, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `batch_results_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'churn_predictions.csv';
+    link.click();
   };
 
-  return (
+    return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-gray-900 relative overflow-hidden">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
@@ -437,3 +484,4 @@ const handleSinglePrediction = async () => {
 };
 
 export default ChurnPredictionUI;
+
