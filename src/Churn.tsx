@@ -3,7 +3,6 @@ import {
   Upload, User, FileText, Plus as PlusIcon, Users, BarChart3, Download, Sparkles, Brain, Zap, AlertCircle, CheckCircle
 } from 'lucide-react';
 import logo from './assets/at.png';
-import axios from 'axios';
 
 interface FormData {
   customer_id: string;
@@ -281,17 +280,18 @@ const ChurnPredictionUI = () => {
     try {
       console.log('Sending batch prediction for', customers.length, 'customers');
 
-      const response = await axios.post(BATCH_PREDICTION_URL, {
-        customers: customers
+      const response = await fetch(BATCH_PREDICTION_URL, {
+        method: "POST",
+        body: JSON.stringify({ customers })
       });
 
-      if (response.status !== 200) {
+      if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result: BatchResponse = response.data;
+      const result: BatchResponse = await response.json();
       console.log('Batch prediction result:', result);
-      
+
       setBatchResponse(result);
       setLoading(false);
 
@@ -315,15 +315,16 @@ const ChurnPredictionUI = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(SINGLE_PREDICTION_URL, {
-        body: formData
+      const response = await fetch(SINGLE_PREDICTION_URL, {
+        method: "POST",
+        body: JSON.stringify({ body: formData })
       });
 
-      if (response.status !== 200) {
+      if (!response.ok) {
         throw new Error("Prediction request failed");
       }
 
-      const data: PredictionResponse = response.data;
+      const data: PredictionResponse = await response.json();
       console.log("Prediction response:", data);
 
       setSinglePrediction(data);
